@@ -1,0 +1,148 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  nombre   String
+  correo   String @unique
+  password String
+  rol      Rol
+
+  cliente Cliente?
+
+  // RELACIÓN: un usuario cliente puede tener muchas mascotas
+  mascotas Mascota[]
+
+  // Citas donde el usuario es cliente
+  citas            Cita[] @relation("UserCitas")
+  // Citas donde el usuario es veterinario
+  veterinarioCitas Cita[] @relation("VeterinarioCitas")
+
+  // Lista de espera y reservas de producto
+  listasEspera     ListaEspera[]
+  reservasProducto ReservaProducto[]
+
+  createdAt DateTime @default(now())
+}
+
+model Cliente {
+  id        Int     @id @default(autoincrement())
+  telefono  String?
+  direccion String?
+  userId    Int     @unique
+  user      User    @relation(fields: [userId], references: [id])
+
+  // OJO: quitamos mascotas aquí, las mascotas cuelgan directo de User
+  // mascotas  Mascota[]
+}
+
+model Mascota {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  especie   String
+  raza      String?
+  edad      Float?
+  creadoEn  DateTime @default(now())
+
+  cliente   User     @relation(fields: [clienteId], references: [id])
+  clienteId Int
+
+  citas       Cita[]
+  listasEspera ListaEspera[]
+  consultas   Consulta[]
+}
+
+
+model Cita {
+  id     Int        @id @default(autoincrement())
+  fecha  DateTime
+  motivo String?
+  estado EstadoCita @default(PENDIENTE)
+  origen OrigenCita @default(NORMAL)
+
+  clienteId     Int
+  mascotaId     Int
+  veterinarioId Int?
+
+  cliente     User    @relation("UserCitas", fields: [clienteId], references: [id])
+  mascota     Mascota @relation(fields: [mascotaId], references: [id])
+  veterinario User?   @relation("VeterinarioCitas", fields: [veterinarioId], references: [id])
+}
+
+model ListaEspera {
+  id        Int      @id @default(autoincrement())
+  clienteId Int
+  mascotaId Int
+  motivo    String?
+  fecha     DateTime @default(now())
+
+  cliente User    @relation(fields: [clienteId], references: [id])
+  mascota Mascota @relation(fields: [mascotaId], references: [id])
+}
+
+model Consulta {
+  id           Int      @id @default(autoincrement())
+  motivo       String
+  diagnostico  String?
+  tratamiento  String?
+  indicaciones String?
+  fecha        DateTime @default(now())
+
+  mascotaId Int
+  mascota   Mascota @relation(fields: [mascotaId], references: [id])
+}
+
+model Producto {
+  id          Int     @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  precio      Float
+  stock       Int     @default(0)
+
+  reservas ReservaProducto[]
+}
+
+model ReservaProducto {
+  id         Int           @id @default(autoincrement())
+  productoId Int
+  clienteId  Int?
+  nombre     String?
+  correo     String?
+  telefono   String?
+  estado     EstadoReserva @default(PENDIENTE)
+
+  producto Producto @relation(fields: [productoId], references: [id])
+  cliente  User?    @relation(fields: [clienteId], references: [id])
+}
+
+enum Rol {
+  CLIENTE
+  RECEPCIONISTA
+  VETERINARIO
+  ADMIN
+}
+
+enum EstadoCita {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+  COMPLETADA
+}
+
+enum OrigenCita {
+  NORMAL
+  LISTA_ESPERA
+}
+
+enum EstadoReserva {
+  PENDIENTE
+  NOTIFICADO
+  COMPLETADO
+  CANCELADO
+}
