@@ -16,7 +16,7 @@ app.use(express.json());
 
 // Rutas
 app.use('/api/auth', authRoutes);
-app.use('/api/mascotas', mascotaRoutes);   // 👈 AGREGADO
+app.use('/api/mascotas', mascotaRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/mascotas', mascotaRoutes);
 app.use('/api/citas', citaRoutes);
